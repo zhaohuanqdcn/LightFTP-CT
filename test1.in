@@ -1,0 +1,17 @@
+USER test1
+PASS test
+SYST
+PORT 127,0,0,1,132,209
+PWD
+PASV
+LIST
+MKD testdir1
+TYPE I
+PASV
+STOR test1
+PASV
+LIST
+DELE test2
+DELE test3
+CWD /testdir1
+QUIT

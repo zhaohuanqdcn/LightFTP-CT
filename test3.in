@@ -1,0 +1,14 @@
+USER test3
+PASS test
+PORT 127,0,0,1,133,11
+PWD
+TYPE I
+PASV
+LIST
+PASV
+RETR test1
+PASV
+STOR test3
+DELE test5
+RMD testdir2
+QUIT

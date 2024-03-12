@@ -142,10 +142,11 @@ int main(int argc, char *argv[])
 			break;
 		}
 
-		do {
-			c = getc(stdin);
-			sleep(1);
-		} while ((c != 'q') && (c != 'Q'));
+		// do {
+		// 	c = getc(stdin);
+		// 	sleep(1);
+		// } while ((c != 'q') && (c != 'Q'));
+		pthread_join(thid, NULL);
 
 		break;
 	}

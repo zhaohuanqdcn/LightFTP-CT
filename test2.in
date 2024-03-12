@@ -1,0 +1,12 @@
+USER test2
+PASS test
+SYST
+PORT 127,0,0,1,132,52
+RMD testdir1
+PASV
+LIST
+PASV
+STOR test2
+MKD testdir2
+RMD testdir5
+QUIT
