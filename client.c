@@ -7,7 +7,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
-#define NUM_THREADS 5
+#define NUM_THREADS 4
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 21
 #define BUFFER_SIZE 1024
@@ -87,7 +87,7 @@ void* client_thread(void *arg) {
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
         perror("Error creating socket");
-        return NULL;
+        pthread_exit((void*)-1);
     }
 
     memset(&server_addr, 0, sizeof(server_addr));
@@ -97,7 +97,7 @@ void* client_thread(void *arg) {
 
     if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         perror("Error connecting to server");
-        return NULL;
+        pthread_exit((void*)-1);
     }
 
     if (recv(sockfd, rcv_buf, BUFFER_SIZE, 0) < 0) {
@@ -109,20 +109,20 @@ void* client_thread(void *arg) {
     if (!file) {
         perror("Error opening file");
         close(sockfd);
-        return NULL;
+        pthread_exit((void*)-1);
     }
 
     while (fgets(buffer, BUFFER_SIZE, file) != NULL) {
         
         if (send(sockfd, buffer, strlen(buffer), 0) < 0) {
             perror("Error sending command to server");
-            break;
+            pthread_exit((void*)-1);
         }
 
         memset(rcv_buf, 0, BUFFER_SIZE);
         if (recv(sockfd, rcv_buf, BUFFER_SIZE, 0) < 0) {
             perror("Error receiving response from server");
-            break;
+            pthread_exit((void*)-1);
         }
         printf("#%d - Client: %s#%d - Server: %s", id, buffer, id, rcv_buf);
         
@@ -138,7 +138,7 @@ void* client_thread(void *arg) {
             memset(rcv_buf, 0, BUFFER_SIZE);
             if (recv(sockfd, rcv_buf, BUFFER_SIZE, 0) < 0) {
                 perror("Error receiving response from server");
-                break;
+                pthread_exit((void*)-1);
             }
             printf("#%d - Server: %s", id, rcv_buf);
         } else if (strstr(buffer, "STOR") != NULL
@@ -148,7 +148,7 @@ void* client_thread(void *arg) {
             memset(rcv_buf, 0, BUFFER_SIZE);
             if (recv(sockfd, rcv_buf, BUFFER_SIZE, 0) < 0) {
                 perror("Error receiving response from server");
-                break;
+                pthread_exit((void*)-1);
             }
             printf("#%d - Server: %s", id, rcv_buf);
         }
@@ -162,7 +162,7 @@ void* client_thread(void *arg) {
 
 int main() {
     pthread_t threads[NUM_THREADS];
-    char *filenames[NUM_THREADS] = {"test1.in", "test2.in", "test3.in", "test4.in", "test5.in"};
+    char *filenames[NUM_THREADS] = {"test1.in", "test2.in", "test3.in", "test4.in"};
 
     for(int i = 0; i < NUM_THREADS; i++) {
         int rc = pthread_create(&threads[i], NULL, client_thread, (void *)filenames[i]);

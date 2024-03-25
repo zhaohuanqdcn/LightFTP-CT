@@ -13,7 +13,7 @@
 #include "x_malloc.h"
 #include "fspathtools.h"
 
-#define NUM_THREADS 5
+#define NUM_THREADS 4
 pthread_t th[NUM_THREADS];
 
 static const FTPROUTINE_ENTRY ftpprocs[MAX_CMDS] = {
@@ -196,8 +196,8 @@ ssize_t writeconsolestr(const char *Buffer)
     size_t	l = strlen(Buffer);
     __attribute__((__unused__)) size_t r;
 
-    if ( g_log != -1 )
-        r = write(g_log, Buffer, l);
+    // if ( g_log != -1 )
+    //     r = write(g_log, Buffer, l);
 
     return write(STDOUT_FILENO, Buffer, l);
 }
@@ -540,6 +540,8 @@ void *list_thread(PTHCONTEXT tctx)
             if (!ftp_init_tls_session(&TLS_datasession, clientsocket, 0))
                 break;
 
+        sched_yield();
+        
         pdir = opendir(tctx->thFileName);
         if (pdir == NULL)
             break;
@@ -702,6 +704,8 @@ void *retr_thread(PTHCONTEXT tctx)
         else
             buffer_size = TRANSMIT_BUFFER_SIZE;
 
+        sched_yield();
+        
         f = open(tctx->thFileName, O_RDONLY);
         context->hFile = f;
         if (f == -1)
@@ -828,6 +832,8 @@ int ftpDELE(PFTPCONTEXT context, const char *params)
         return sendstring(context, error501);
 
     ftp_effective_path(context->RootDir, context->CurrentDir, params, sizeof(context->FileName), context->FileName);
+
+    sched_yield();
 
     if ( unlink(context->FileName) == 0 ) {
         sendstring(context, success250);
@@ -1053,6 +1059,8 @@ int ftpMKD(PFTPCONTEXT context, const char *params)
 
     ftp_effective_path(context->RootDir, context->CurrentDir, params, sizeof(context->FileName), context->FileName);
 
+    sched_yield();
+
     if ( mkdir(context->FileName, 0755) == 0 ) {
         sendstring(context, success257);
         writelogentry(context, " MKD: ", (char *)params);
@@ -1074,6 +1082,8 @@ int ftpRMD(PFTPCONTEXT context, const char *params)
 
     ftp_effective_path(context->RootDir, context->CurrentDir, params, sizeof(context->FileName), context->FileName);
 
+    sched_yield();
+    
     if ( rmdir(context->FileName) == 0 ) {
         sendstring(context, success250);
         writelogentry(context, " DELE: ", (char *)params);
@@ -1128,6 +1138,8 @@ void *stor_thread(PTHCONTEXT tctx)
         else
             buffer_size = TRANSMIT_BUFFER_SIZE;
 
+        sched_yield();
+        
         if (tctx->FnType == STOR_TYPE_APPEND)
             f = open(tctx->thFileName, O_RDWR);
         else

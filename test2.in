@@ -1,12 +1,15 @@
 USER test2
 PASS test
-SYST
 PORT 127,0,0,1,132,52
-RMD testdir1
+MKD 2-0
+SYST
+MKD 2-1
+MKD 2-2
+TYPE I
+MKD 2-3
 PASV
 LIST
+MKD 2-4
 PASV
 STOR test2
-MKD testdir2
-RMD testdir5
 QUIT
