@@ -13,6 +13,7 @@
 #define BUFFER_SIZE 1024
 
 int handle_pasv(char* pasv_resp) {
+    int *ret_val = malloc(sizeof(int));
     int p1, p2;
     sscanf(pasv_resp, "227 Entering Passive Mode (%*d,%*d,%*d,%*d,%d,%d)", &p1, &p2);
     int dataPort = p1 * 256 + p2;
@@ -20,7 +21,8 @@ int handle_pasv(char* pasv_resp) {
     int data_sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if(data_sockfd < 0) {
         perror("Error creating data socket");
-        exit(EXIT_FAILURE);
+        *ret_val = 1;
+        pthread_exit(ret_val);
     }
 
     struct sockaddr_in server_addr;
@@ -31,7 +33,8 @@ int handle_pasv(char* pasv_resp) {
 
     if(connect(data_sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         perror("Error connecting to server for data transfer");
-        exit(EXIT_FAILURE);
+        *ret_val = 2;
+        pthread_exit(ret_val);
     }
     return data_sockfd;
 }
@@ -73,6 +76,7 @@ void upload_data(int data_sockfd) {
 
 
 void* client_thread(void *arg) {
+    int *ret_val = malloc(sizeof(int));
     char* filename = (char*) arg;
     int id;
     sscanf(filename, "test%d.in", &id);
@@ -87,7 +91,8 @@ void* client_thread(void *arg) {
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
         perror("Error creating socket");
-        pthread_exit((void*)-1);
+        *ret_val = 3;
+        pthread_exit(ret_val);
     }
 
     memset(&server_addr, 0, sizeof(server_addr));
@@ -97,7 +102,8 @@ void* client_thread(void *arg) {
 
     if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         perror("Error connecting to server");
-        pthread_exit((void*)-1);
+        *ret_val = 4;
+        pthread_exit(ret_val);
     }
 
     if (recv(sockfd, rcv_buf, BUFFER_SIZE, 0) < 0) {
@@ -109,20 +115,23 @@ void* client_thread(void *arg) {
     if (!file) {
         perror("Error opening file");
         close(sockfd);
-        pthread_exit((void*)-1);
+        *ret_val = 5;
+        pthread_exit(ret_val);
     }
 
     while (fgets(buffer, BUFFER_SIZE, file) != NULL) {
         
         if (send(sockfd, buffer, strlen(buffer), 0) < 0) {
             perror("Error sending command to server");
-            pthread_exit((void*)-1);
+            *ret_val = 6;
+            pthread_exit(ret_val);
         }
 
         memset(rcv_buf, 0, BUFFER_SIZE);
         if (recv(sockfd, rcv_buf, BUFFER_SIZE, 0) < 0) {
             perror("Error receiving response from server");
-            pthread_exit((void*)-1);
+            *ret_val = 7;
+            pthread_exit(ret_val);
         }
         printf("#%d - Client: %s#%d - Server: %s", id, buffer, id, rcv_buf);
         
@@ -138,7 +147,8 @@ void* client_thread(void *arg) {
             memset(rcv_buf, 0, BUFFER_SIZE);
             if (recv(sockfd, rcv_buf, BUFFER_SIZE, 0) < 0) {
                 perror("Error receiving response from server");
-                pthread_exit((void*)-1);
+                *ret_val = 8;
+                pthread_exit(ret_val);
             }
             printf("#%d - Server: %s", id, rcv_buf);
         } else if (strstr(buffer, "STOR") != NULL
@@ -148,7 +158,8 @@ void* client_thread(void *arg) {
             memset(rcv_buf, 0, BUFFER_SIZE);
             if (recv(sockfd, rcv_buf, BUFFER_SIZE, 0) < 0) {
                 perror("Error receiving response from server");
-                pthread_exit((void*)-1);
+                *ret_val = 9;
+                pthread_exit(ret_val);
             }
             printf("#%d - Server: %s", id, rcv_buf);
         }
@@ -157,7 +168,8 @@ void* client_thread(void *arg) {
     fclose(file);
     close(sockfd);
 
-    return NULL;
+    *ret_val = 0;
+    pthread_exit(ret_val);
 }
 
 int main() {
@@ -172,13 +184,14 @@ int main() {
         }
     }
 
-    void *ret_val;
     /* wait for all threads to complete */
     for(int i = 0; i < NUM_THREADS; i++) {
+        void *ret_val;
         pthread_join(threads[i], &ret_val);
         int result = *(int *)ret_val;
         if (result != 0) 
-            exit(-1);
+            exit(result);
+        free(ret_val);
     }
 
     return 0;
