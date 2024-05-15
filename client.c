@@ -172,10 +172,13 @@ int main() {
         }
     }
 
+    void *ret_val;
     /* wait for all threads to complete */
     for(int i = 0; i < NUM_THREADS; i++) {
-        pthread_join(threads[i], NULL);
-        // printf("Client #%d joined\n", i + 1);
+        pthread_join(threads[i], &ret_val);
+        int result = *(int *)ret_val;
+        if (result != 0) 
+            exit(-1);
     }
 
     return 0;
